@@ -1,0 +1,8 @@
+[
+  {
+    "name": "Your First Website",
+    "description": "Add your own website HTML folder and update this entry.",
+    "image": "assets/site-placeholder.svg",
+    "url": "websites/example/index.html"
+  }
+]

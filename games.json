@@ -1,0 +1,9 @@
+[
+  {
+    "name": "Your First Game",
+    "description": "Replace this sample with one of your own game files.",
+    "image": "assets/game-placeholder.svg",
+    "file": "games/example/index.html",
+    "category": "Arcade"
+  }
+]
