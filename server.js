@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 
 // Website folders
 const PUBLIC_DIR = path.join(__dirname, "public");
-const GAMES_DIR = path.join(PUBLIC_DIR, "games");
+const GAMES_DIR = path.join(__dirname, "games");
 const DATA_DIR = path.join(PUBLIC_DIR, "data");
 const GAMES_JSON = path.join(DATA_DIR, "games.json");
 
