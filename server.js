@@ -6,13 +6,19 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Website folders
+// ==========================================
+// FOLDER LOCATIONS
+// ==========================================
+
 const PUBLIC_DIR = path.join(__dirname, "public");
 const GAMES_DIR = path.join(__dirname, "games");
 const DATA_DIR = path.join(PUBLIC_DIR, "data");
 const GAMES_JSON = path.join(DATA_DIR, "games.json");
 
-// Get a game's title from its HTML file
+// ==========================================
+// GET GAME TITLE
+// ==========================================
+
 function getGameTitle(filename, html) {
     const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
 
@@ -34,30 +40,47 @@ function getGameTitle(filename, html) {
         .replace(/\b[a-z]/g, c => c.toUpperCase());
 }
 
-// Automatically generate the games catalog
+// ==========================================
+// GENERATE GAMES LIST
+// ==========================================
+
 function buildGamesCatalog() {
     fs.mkdirSync(GAMES_DIR, { recursive: true });
     fs.mkdirSync(DATA_DIR, { recursive: true });
 
-    const games = fs.readdirSync(GAMES_DIR, {
+    const files = fs.readdirSync(GAMES_DIR, {
         withFileTypes: true
-    })
-    .filter(file =>
-        file.isFile() && /\.(html|htm)$/i.test(file.name)
-    )
-    .map(file => {
-        const filePath = path.join(GAMES_DIR, file.name);
-        const html = fs.readFileSync(filePath, "utf8");
+    });
 
-        return {
-            id: path.basename(file.name, path.extname(file.name)),
-            name: getGameTitle(file.name, html),
-            description: "Ready to play.",
-            category: "Other",
-            file: `/games/${encodeURIComponent(file.name)}`
-        };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name));
+    const games = [];
+
+    for (const file of files) {
+        if (
+            !file.isFile() ||
+            !/\.(html|htm)$/i.test(file.name)
+        ) {
+            continue;
+        }
+
+        const filePath = path.join(GAMES_DIR, file.name);
+
+        try {
+            const html = fs.readFileSync(filePath, "utf8");
+
+            games.push({
+                id: path.basename(file.name, path.extname(file.name)),
+                name: getGameTitle(file.name, html),
+                description: "Ready to play.",
+                category: "Other",
+                file: `/games/${encodeURIComponent(file.name)}`
+            });
+
+        } catch (error) {
+            console.error(`Could not read ${file.name}:`, error.message);
+        }
+    }
+
+    games.sort((a, b) => a.name.localeCompare(b.name));
 
     fs.writeFileSync(
         GAMES_JSON,
@@ -65,20 +88,57 @@ function buildGamesCatalog() {
         "utf8"
     );
 
-    console.log(`Loaded ${games.length} games.`);
+    console.log(`Successfully loaded ${games.length} games.`);
 }
 
-// Serve website files and games directly
+// ==========================================
+// WEBSITE FILES
+// ==========================================
+
 app.use(express.static(PUBLIC_DIR));
 
-// Start server
+// ==========================================
+// GAME FILES
+// IMPORTANT: GAMES ARE OUTSIDE PUBLIC
+// ==========================================
+
+app.use(
+    "/games",
+    express.static(GAMES_DIR, {
+        extensions: ["html", "htm"],
+        index: false
+    })
+);
+
+// ==========================================
+// HEALTH CHECK
+// ==========================================
+
+app.get("/health", (req, res) => {
+    res.json({
+        status: "online",
+        games: fs.existsSync(GAMES_JSON)
+            ? JSON.parse(fs.readFileSync(GAMES_JSON, "utf8")).length
+            : 0
+    });
+});
+
+// ==========================================
+// START SERVER
+// ==========================================
+
 try {
     buildGamesCatalog();
 
     app.listen(PORT, () => {
-        console.log(`Penguins running on port ${PORT}`);
+        console.log("--------------------------------");
+        console.log("PENGUINS SERVER ONLINE");
+        console.log("Website:", PORT);
+        console.log("Games folder:", GAMES_DIR);
+        console.log("--------------------------------");
     });
+
 } catch (error) {
-    console.error("Failed to start Penguins:", error);
+    console.error("PENGUINS FAILED TO START:", error);
     process.exit(1);
 }
